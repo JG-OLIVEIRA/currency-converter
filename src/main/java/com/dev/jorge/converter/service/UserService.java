@@ -2,6 +2,9 @@ package com.dev.jorge.converter.service;
 
 import com.dev.jorge.converter.entity.User;
 import com.dev.jorge.converter.repository.UserRepository;
+import com.dev.jorge.converter.exceptions.UserNotFoundException;
+import com.dev.jorge.converter.exceptions.UserAlreadyExistsException;
+
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,7 +22,10 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public User signUp(String username, String password){
+    public User signUp(String username, String password) {
+        if (repository.findByUsername(username).isPresent()) {
+            throw new UserAlreadyExistsException("Usuário já existe");
+        }
         User newUser = new User();
         newUser.setUsername(username);
         newUser.setPassword(passwordEncoder.encode(password));
@@ -27,16 +33,17 @@ public class UserService {
         return repository.save(newUser);
     }
 
-    public User signIn(String username, String password){
+    public User signIn(String username, String password) {
         User user = findByUsername(username);
-        if(!passwordEncoder.matches(password, user.getPassword())){
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new BadCredentialsException("Credenciais inválidas");
         }
         return user;
     }
 
-    private User findByUsername(String username){
-        return repository.findByUsername(username).orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+    private User findByUsername(String username) {
+        return repository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado"));
     }
 
 }

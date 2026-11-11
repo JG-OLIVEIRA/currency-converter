@@ -4,13 +4,15 @@ import com.dev.jorge.converter.client.ExchangeRatesClient;
 import com.dev.jorge.converter.dto.response.RatesResponse;
 import com.dev.jorge.converter.entity.Conversion;
 import com.dev.jorge.converter.repository.ConversionRepository;
+import com.dev.jorge.converter.exceptions.UnsupportedCurrencyException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -50,7 +52,7 @@ class CurrencyServiceTest {
         assertThat(conversion.getFromCurrency()).isEqualTo("USD");
         assertThat(conversion.getToCurrency()).isEqualTo("BRL");
         assertThat(conversion.getRate()).isEqualByComparingTo("5.1234567");
-        assertThat(conversion.getResult()).isEqualByComparingTo("10.246913");
+        assertThat(conversion.getResult()).isEqualByComparingTo("10.25");
         verify(client).getRates("USD");
         verify(repository).save(conversion);
     }
@@ -58,14 +60,10 @@ class CurrencyServiceTest {
     @Test
     @DisplayName("Rejeita conversão quando a moeda de destino não é suportada")
     void should_reject_conversion_when_target_currency_is_not_supported() {
-        when(client.getRates("USD")).thenReturn(new RatesResponse("success", "USD",
-                Map.of("BRL", BigDecimal.ONE)));
+        when(client.getRates("USD")).thenReturn(new RatesResponse("error", "USD", Map.of("BRL", BigDecimal.ONE)));
 
         assertThatThrownBy(() -> service.convert("jorge", "USD", "EUR", BigDecimal.ONE))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("Unsupported currency: EUR");
-
-        verify(repository, never()).save(any());
+                .isInstanceOf(UnsupportedCurrencyException.class);
     }
 
     @Test

@@ -10,25 +10,25 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/auth")
 public class UserController {
 
     private final UserService service;
 
-    public UserController(UserService service){
+    public UserController(UserService service) {
         this.service = service;
     }
 
-    @PostMapping
+    @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public RegisterUserResponse register(@RequestBody @Valid RegisterUserRequest request){
+    public RegisterUserResponse register(@RequestBody @Valid RegisterUserRequest request) {
         User user = service.signUp(request.username(), request.password());
         return new RegisterUserResponse(user.getUsername(), user.getApiKey());
     }
 
-    @PutMapping
+    @PostMapping("/login")
     @ResponseStatus(HttpStatus.OK)
-    public LoginUserResponse login(@RequestBody @Valid RegisterUserRequest request){
+    public LoginUserResponse login(@RequestBody @Valid RegisterUserRequest request) {
         User user = service.signIn(request.username(), request.password());
         return new LoginUserResponse(user.getApiKey());
     }

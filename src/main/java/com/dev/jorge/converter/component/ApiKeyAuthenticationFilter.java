@@ -24,7 +24,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
         String apiKey = request.getHeader("X-API-Key");
         if (apiKey != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             userRepository.findByApiKey(apiKey)

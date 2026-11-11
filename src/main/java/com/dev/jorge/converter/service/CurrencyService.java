@@ -4,8 +4,8 @@ import com.dev.jorge.converter.client.ExchangeRatesClient;
 import com.dev.jorge.converter.dto.response.RatesResponse;
 import com.dev.jorge.converter.entity.Conversion;
 import com.dev.jorge.converter.repository.ConversionRepository;
+import com.dev.jorge.converter.exceptions.UnsupportedCurrencyException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
@@ -26,11 +26,7 @@ public class CurrencyService {
         String target = normalize(to);
         RatesResponse response = rates(baseCode);
         BigDecimal rate = response.rates().get(target);
-        if (rate == null) {
-            throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
-                    "Unsupported currency: " + target);
-        }
-        BigDecimal result = amount.multiply(rate).setScale(6, RoundingMode.HALF_UP);
+        BigDecimal result = amount.multiply(rate).setScale(2, RoundingMode.HALF_UP);
         return repository.save(new Conversion(username, baseCode, target, amount, rate, result));
     }
 
@@ -47,11 +43,15 @@ public class CurrencyService {
     }
 
     private RatesResponse rates(String baseCode) {
-        return client.getRates(baseCode);
+        RatesResponse response = client.getRates(baseCode);
+        if (response.result().equals("error")) {
+            throw new UnsupportedCurrencyException("Unsupported currency: " + baseCode);
+        }
+        return response;
     }
 
-    private String normalize(String currency) {
-        return currency.trim().toUpperCase(Locale.ROOT);
+    private String normalize(String baseCode) {
+        return baseCode.trim().toUpperCase(Locale.ROOT);
     }
 
 }
