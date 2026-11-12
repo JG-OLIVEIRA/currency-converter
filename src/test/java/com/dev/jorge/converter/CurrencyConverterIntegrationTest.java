@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -18,10 +19,10 @@ import java.util.Map;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 class CurrencyConverterIntegrationTest {
 
     @Autowired
@@ -47,21 +48,21 @@ class CurrencyConverterIntegrationTest {
     @Test
     @DisplayName("Cadastra usuário e autentica conversão por chave de API")
     void should_register_and_convert_when_api_key_is_valid() throws Exception {
-        String response = mockMvc.perform(post("/api/users")
+        String response = mockMvc.perform(post("/api/auth/register")
                         .contentType("application/json")
                         .content("""
-                                {"username":"jorge","password":"senha"}
+                                {"username":"jorge.gdoliveira","password":"senha"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.username").value("jorge"))
+                .andExpect(jsonPath("$.username").value("jorge.gdoliveira"))
                 .andExpect(jsonPath("$.apiKey").isString())
                 .andReturn().getResponse().getContentAsString();
         String apiKey = com.jayway.jsonpath.JsonPath.read(response, "$.apiKey");
 
-        mockMvc.perform(put("/api/users")
+        mockMvc.perform(post("/api/auth/login")
                         .contentType("application/json")
                         .content("""
-                                {"username":"jorge","password":"senha"}
+                                {"username":"jorge.gdoliveira","password":"senha"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.apiKey").value(apiKey));
@@ -70,7 +71,7 @@ class CurrencyConverterIntegrationTest {
                         .header("X-API-Key", apiKey)
                         .contentType("application/json")
                         .content("""
-                                {"from":" usd ","to":"brl","amount":2}
+                                {"from":"USD","to":"BRL","amount": 2}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.from").value("USD"))
@@ -87,7 +88,7 @@ class CurrencyConverterIntegrationTest {
     @DisplayName("Bloqueia endpoints protegidos sem autenticação")
     void should_reject_protected_endpoint_without_api_key() throws Exception {
         mockMvc.perform(get("/api/conversions"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -108,7 +109,7 @@ class CurrencyConverterIntegrationTest {
     }
 
     private String registerUser(String username) throws Exception {
-        String response = mockMvc.perform(post("/api/users")
+        String response = mockMvc.perform(post("/api/auth/register")
                         .contentType("application/json")
                         .content("""
                                 {"username":"%s","password":"senha"}
